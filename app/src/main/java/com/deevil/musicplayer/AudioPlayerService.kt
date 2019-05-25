@@ -3,34 +3,33 @@ package com.deevil.musicplayer
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
 import android.os.*
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
-import androidx.annotation.DrawableRes
-import androidx.core.app.NotificationCompat
-import com.deevil.musicplayer.Samples.SAMPLES
-import com.google.android.exoplayer2.ExoPlayerFactory
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.Player.REPEAT_MODE_ALL
-import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector.*
+import com.google.android.exoplayer2.ext.mediasession.RepeatModeActionProvider
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.metadata.Metadata
 import com.google.android.exoplayer2.metadata.id3.ApicFrame
 import com.google.android.exoplayer2.metadata.id3.Id3Frame
 import com.google.android.exoplayer2.metadata.id3.TextInformationFrame
+import com.google.android.exoplayer2.source.ConcatenatingMediaSource
+import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.ui.PlayerNotificationManager
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.util.Util
+import java.util.ArrayList
 
 
 class AudioPlayerService : Service() {
@@ -40,6 +39,10 @@ class AudioPlayerService : Service() {
     private var mediaSession: MediaSessionCompat? = null
     private var mediaSessionConnector: MediaSessionConnector? = null
     private val mServiceHandler = ServiceHandler(this)
+    //private val mediaSessionCallback = MediaSessionCallback()
+    private val metadataBuilder = MediaMetadataCompat.Builder()
+    public var list: Array<Uri>? = null
+    private lateinit var mediaController: MediaControllerCompat
 
     override fun onCreate() {
         super.onCreate()
@@ -47,26 +50,14 @@ class AudioPlayerService : Service() {
 
         player = ExoPlayerFactory.newSimpleInstance(context, DefaultTrackSelector())
 
-        //val dataSourceFactory = DefaultDataSourceFactory(context, Util.getUserAgent(context, getString(R.string.app_name)))
-//        //val cacheDataSourceFactory = CacheDataSourceFactory(DownloadUtil.getCache(context), dataSourceFactory, CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-//        val concatenatingMediaSource = ConcatenatingMediaSource()
-//
-//        for (sample in SAMPLES) {
-//            val mediaSource = ExtractorMediaSource.Factory(dataSourceFactory).createMediaSource(sample.uri)
-//            concatenatingMediaSource.addMediaSource(mediaSource)
-//        }
-//        player.prepare(concatenatingMediaSource)
-//        player.playWhenReady = true
-
-
         playerNotificationManager = PlayerNotificationManager.createWithNotificationChannel(
             context,
             C.PLAYBACK_CHANNEL_ID,
             R.string.playback_channel_name,
             C.PLAYBACK_NOTIFICATION_ID,
             object : PlayerNotificationManager.MediaDescriptionAdapter {
-                override fun getCurrentContentTitle(player: Player): String {
 
+                override fun getCurrentContentTitle(player: Player): String {
 
                     for (i in 0 until (player.currentTrackSelections.length)) {
                         val selection = player.currentTrackSelections.get(i)
@@ -84,7 +75,6 @@ class AudioPlayerService : Service() {
                         }
                     }
                     return ""
-                   // return SAMPLES[player.currentWindowIndex].title
                 }
 
                 override fun createCurrentContentIntent(player: Player): PendingIntent? {
@@ -108,10 +98,12 @@ class AudioPlayerService : Service() {
                         }
                     }
                     return ""
-                           // return SAMPLES[player.currentWindowIndex].description
                 }
 
-                override fun getCurrentLargeIcon(player: Player, callback: PlayerNotificationManager.BitmapCallback): Bitmap {
+                override fun getCurrentLargeIcon(
+                    player: Player,
+                    callback: PlayerNotificationManager.BitmapCallback
+                ): Bitmap {
                     for (i in 0 until (player.currentTrackSelections.length)) {
                         val selection = player.currentTrackSelections.get(i)
                         for (j in 0 until (selection?.length() ?: 0)) {
@@ -152,21 +144,126 @@ class AudioPlayerService : Service() {
         playerNotificationManager.setMediaSessionToken(mediaSession!!.sessionToken)
 
         mediaSessionConnector = MediaSessionConnector(mediaSession)
-        mediaSessionConnector!!.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
-            override fun getMediaDescription(player: Player, windowIndex: Int): MediaDescriptionCompat {
-                return Samples.getMediaDescription(context, SAMPLES[windowIndex])
-            }
-        })
+//        mediaSessionConnector!!.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
+//            override fun getMediaDescription(player: Player, windowIndex: Int): MediaDescriptionCompat? {
+//
+//                //player.currentTrackGroups
+//
+//
+//                //val x = ((player as SimpleExoPlayer)..mediaSource as ConcatenatingMediaSource).getMediaSource(windowIndex)
+//
+//                val extras = Bundle()
+//                val bitmap = Samples.getBitmap(context, R.drawable.default_img)
+//                extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+//                extras.putParcelable(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, bitmap)
+//                return MediaDescriptionCompat.Builder()
+//                    .setMediaId("1111")
+//                    .setIconBitmap(bitmap)
+//                    .setTitle("2222")
+//                    .setDescription("3333")
+//                    .setExtras(extras)
+//                    .build()
+//                //return Samples.getMediaDescription(context, SAMPLES[windowIndex])
+//            }
+//        })
 
-
+        //mediaSession!!.setCallback(mediaSessionCallback)
         mediaSessionConnector!!.setPlayer(player)
         mediaSessionConnector!!.setPlaybackPreparer(AudioPlayerPreparer(player, this))
 
+        mediaController = MediaControllerCompat(this, mediaSession!!)
+        //mediaSession.setMediaButtonReceiver()
+        //mediaSessionConnector!!.setCustomActionProviders(RepeatModeActionProvider)
+        //mediaSessionConnector!!.setMediaMetadataProvider {var aaa = DefaultMediaMetadataProvider() }
+        //mediaSessionConnector.
         //mediaSession!!.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
         //mediaSessionConnector.
         //player.repeatMode = Player.REPEAT_MODE_ALL
         //player.
+        mediaSession.
+
+        //mediaSessionConnector.pl
+        player!!.addListener(object : Player.EventListener {
+
+            private val window: Timeline.Window? = null
+
+
+            override fun onLoadingChanged(isLoading: Boolean) {
+                if (!isLoading) {
+                    Log.i("TTT", "onLoadingChanged")
+                }
+            }
+
+            override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
+                Log.i("TTT", "onTracksChanged")
+                var Art: String? = null
+                var Tit: String? = null
+                var Bit: Bitmap? = null
+
+                for (i in 0 until (trackSelections?.length ?: 0)) {
+                    val selection = trackSelections?.get(i)
+                    for (j in 0 until (selection?.length() ?: 0)) {
+                        val metadata: Metadata? = selection?.getFormat(j)?.metadata
+                        for (z in 0 until (metadata?.length() ?: 0)) {
+                            val metadataEntry = metadata?.get(z)
+                            if (metadataEntry is Id3Frame) {
+                                when (metadataEntry.id) {
+                                    "TPE1" -> Art = (metadataEntry as TextInformationFrame).value
+                                    "TIT2" -> Tit = (metadataEntry as TextInformationFrame).value
+                                }
+                            }
+                            if (metadataEntry is ApicFrame) {
+                                val bitmapData = metadataEntry.pictureData
+                                Bit = BitmapFactory.decodeByteArray(bitmapData, 0, bitmapData.size)
+                            }
+                        }
+                    }
+                }
+
+
+                //if (Art != null && Tit != null) {
+
+                if (Bit != null) {
+                    metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, Bit)
+                } else {
+                    metadataBuilder.putBitmap(
+                        MediaMetadataCompat.METADATA_KEY_ART,
+                        mediaController.metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
+                    )
+                }
+
+                if (Tit != null && Tit != "") {
+                    metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, Tit)
+                } else {
+                    metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, mediaController.metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE))
+                }
+
+                if (Art != null && Art != "") {
+                    metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, Art)
+                } else {
+                    metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, mediaController.metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST))
+                }
+
+                val dur = player.duration
+                if (dur > 0) {
+                    metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, dur)
+                } else {
+                    metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaController.metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION))
+                }
+
+
+                var a = metadataBuilder.build()
+                mediaSession!!.setMetadata(a)
+                //}
+
+//                var b = Bundle()
+//                a.writeToParcel()
+//                mediaSession!!.setExtras()
+            }
+        })
+
     }
+
 
     override fun onDestroy() {
         mediaSession!!.release()
@@ -211,22 +308,5 @@ class AudioPlayerService : Service() {
         }
     }
 
-//    fun getMediaDescription(context: Context, sample: Samples.Sample): MediaDescriptionCompat {
-//        val extras = Bundle()
-//        val bitmap = getBitmap(context, sample.bitmapResource)
-//        extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
-//        extras.putParcelable(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, bitmap)
-//        return MediaDescriptionCompat.Builder()
-//            .setMediaId(sample.mediaId)
-//            .setIconBitmap(bitmap)
-//            .setTitle(sample.title)
-//            .setDescription(sample.description)
-//            .setExtras(extras)
-//            .build()
-//    }
-
-//    fun getBitmap(context: Context, @DrawableRes bitmapResource: Int): Bitmap {
-//        return (context.resources.getDrawable(bitmapResource) as BitmapDrawable).bitmap
-//    }
 
 }
