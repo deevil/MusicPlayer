@@ -3,15 +3,18 @@ package com.deevil.musicplayer
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.os.*
 import android.support.v4.media.MediaDescriptionCompat
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
 import com.deevil.musicplayer.Samples.SAMPLES
 import com.google.android.exoplayer2.ExoPlayerFactory
@@ -149,11 +152,11 @@ class AudioPlayerService : Service() {
         playerNotificationManager.setMediaSessionToken(mediaSession!!.sessionToken)
 
         mediaSessionConnector = MediaSessionConnector(mediaSession)
-//        mediaSessionConnector!!.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
-//            override fun getMediaDescription(player: Player, windowIndex: Int): MediaDescriptionCompat {
-//                return Samples.getMediaDescription(context, SAMPLES[windowIndex])
-//            }
-//        })
+        mediaSessionConnector!!.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
+            override fun getMediaDescription(player: Player, windowIndex: Int): MediaDescriptionCompat {
+                return Samples.getMediaDescription(context, SAMPLES[windowIndex])
+            }
+        })
 
 
         mediaSessionConnector!!.setPlayer(player)
@@ -207,4 +210,23 @@ class AudioPlayerService : Service() {
 
         }
     }
+
+//    fun getMediaDescription(context: Context, sample: Samples.Sample): MediaDescriptionCompat {
+//        val extras = Bundle()
+//        val bitmap = getBitmap(context, sample.bitmapResource)
+//        extras.putParcelable(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+//        extras.putParcelable(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, bitmap)
+//        return MediaDescriptionCompat.Builder()
+//            .setMediaId(sample.mediaId)
+//            .setIconBitmap(bitmap)
+//            .setTitle(sample.title)
+//            .setDescription(sample.description)
+//            .setExtras(extras)
+//            .build()
+//    }
+
+//    fun getBitmap(context: Context, @DrawableRes bitmapResource: Int): Bitmap {
+//        return (context.resources.getDrawable(bitmapResource) as BitmapDrawable).bitmap
+//    }
+
 }

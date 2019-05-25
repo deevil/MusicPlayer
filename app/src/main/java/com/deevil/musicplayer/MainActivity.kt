@@ -192,10 +192,12 @@ class MainActivity : AppCompatActivity() {
 //                )
 //                hidePlaybackControls()
 //            }
+            super.onPlaybackStateChanged(state)
         }
 
+
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            Log.w("TST", "onPlaybackStateChanged")
+            Log.w("TST", "onMetadataChanged")
 //            LogHelper.e(FragmentActivity.TAG, "onMetadataChanged")
 //            if (shouldShowControls()) {
 //                showPlaybackControls()
@@ -206,6 +208,27 @@ class MainActivity : AppCompatActivity() {
 //                )
 //                hidePlaybackControls()
 //            }
+            super.onMetadataChanged(metadata)
+        }
+
+        override fun onSessionReady() {
+            Log.w("TST", "onSessionReady")
+            super.onSessionReady()
+        }
+
+        override fun onSessionEvent(event: String?, extras: Bundle?) {
+            Log.w("TST", "onSessionEvent")
+            super.onSessionEvent(event, extras)
+        }
+
+        override fun onAudioInfoChanged(info: MediaControllerCompat.PlaybackInfo?) {
+            Log.w("TST", "onAudioInfoChanged")
+            super.onAudioInfoChanged(info)
+        }
+
+        override fun onExtrasChanged(extras: Bundle?) {
+            Log.w("TST", "onExtrasChanged")
+            super.onExtrasChanged(extras)
         }
     }
 
