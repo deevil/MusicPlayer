@@ -15,7 +15,6 @@
             android:paddingLeft="40dp"
             android:paddingRight="40dp"
             android:paddingTop="7dp"
-            android:paddingBottom="7dp"
             android:src="@drawable/ic_dropdown"
 
             android:gravity="center"
@@ -39,6 +38,7 @@
                 android:id="@id/exo_artwork"
                 android:layout_width="300dp"
                 android:layout_height="300dp"
+                android:layout_margin="10dp"
                 android:scaleType="fitCenter"
         />
 

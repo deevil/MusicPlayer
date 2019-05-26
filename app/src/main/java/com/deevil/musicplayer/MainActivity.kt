@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
         btn_shuffle.setOnClickListener {
             if (mediaController.shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_NONE) {
                 Log.i(TAG, "setShuffleMode SHUFFLE_MODE_ALL")
-                mediaController.transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_ALL)
+                mediaController.transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_GROUP)
                 setButtonEnabled(btn_shuffle, true, changeAlpha = false, changeSelected = true)
             } else {
                 Log.i(TAG, "setShuffleMode SHUFFLE_MODE_NONE")

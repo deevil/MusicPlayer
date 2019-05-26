@@ -8,6 +8,7 @@ import android.os.ResultReceiver
 import android.provider.DocumentsContract
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import android.widget.Toast
 import com.google.android.exoplayer2.ControlDispatcher
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
@@ -21,6 +22,8 @@ import com.google.android.exoplayer2.util.Util
 
 
 class AudioPlayerPreparer(private val exoPlayer: ExoPlayer, private val context: Context) : MediaSessionConnector.PlaybackPreparer {
+
+    private val TAG = "APP"
 
     override fun onPrepareFromMediaId(mediaId: String?, extras: Bundle?) {}
 
@@ -37,7 +40,6 @@ class AudioPlayerPreparer(private val exoPlayer: ExoPlayer, private val context:
             val lst = getAllAudioFromTree(uri)
 
             val dataSourceFactory = DefaultDataSourceFactory(context, Util.getUserAgent(context, context.getString(R.string.app_name)))
-            //lst.get()
 
             if (lst.size > 0) {
                 val concatenatedSource = ConcatenatingMediaSource()
@@ -47,11 +49,9 @@ class AudioPlayerPreparer(private val exoPlayer: ExoPlayer, private val context:
                 exoPlayer.prepare(concatenatedSource)
                 exoPlayer.playWhenReady = true
             } else {
-                //Toast.makeText(this, "В выбранной директории нет аудио файлов", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "В выбранной директории нет аудио файлов", Toast.LENGTH_LONG).show()
             }
-            //context.li.fileList()
         }
-
     }
 
     override fun onPrepareFromSearch(query: String?, extras: Bundle?) {
@@ -115,4 +115,3 @@ class AudioPlayerPreparer(private val exoPlayer: ExoPlayer, private val context:
 
 }
 
-private const val TAG = "MediaSessionHelper"
