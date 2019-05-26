@@ -11,7 +11,6 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.exoplayer2.util.Util
-import kotlinx.android.synthetic.main.activity_main.*
 import android.content.IntentFilter
 import android.graphics.drawable.BitmapDrawable
 import android.os.Handler
@@ -19,8 +18,9 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.View
-import android.os.SystemClock
 import android.widget.SeekBar
+import kotlinx.android.synthetic.main.player_layout.*
+import kotlinx.android.synthetic.main.select_layout.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -30,10 +30,11 @@ class MainActivity : AppCompatActivity() {
     private val TAG = "DBG-ACT"
 
     private lateinit var mediaController: MediaControllerCompat
-    private lateinit var serviceConnection: ServiceConnection
     private lateinit var sessionToken: MediaSessionCompat.Token
 
     private var updSeek: Boolean = true
+    private var hasNext: Boolean = false
+    private var hasPrev: Boolean = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,102 +45,67 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, AudioPlayerService::class.java)
         Util.startForegroundService(this, intent)
 
-        button.setOnClickListener {
-
+        btn_select.setOnClickListener {
             selectDir()
         }
 
-        button2.setOnClickListener {
+        exo_play.setOnClickListener {
             Log.i("TST", "play")
             mediaController.transportControls.play()
         }
 
-        button3.setOnClickListener {
+        exo_pause.setOnClickListener {
             Log.i("TST", "pause")
             mediaController.transportControls.pause()
         }
 
-        button4.setOnClickListener {
+        exo_prev.setOnClickListener {
             Log.i("TST", "skipToPrevious")
             mediaController.transportControls.skipToPrevious()
         }
 
 
-        button5.setOnClickListener {
+        exo_next.setOnClickListener {
             Log.i("TST", "skipToNext")
             mediaController.transportControls.skipToNext()
+        }
+
+        btn_shuffle.setOnClickListener {
+            if (mediaController.shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_NONE) {
+                Log.i("TST", "setShuffleMode SHUFFLE_MODE_ALL")
+                mediaController.transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_ALL)
+            } else {
+                Log.i("TST", "setShuffleMode SHUFFLE_MODE_NONE")
+                mediaController.transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
+            }
+        }
+
+        btn_repeat.setOnClickListener {
+
+            if (mediaController.repeatMode == PlaybackStateCompat.REPEAT_MODE_NONE) {
+                Log.i("TST", "setRepeatMode REPEAT_MODE_ALL")
+                mediaController.transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
+            } else {
+                Log.i("TST", "setRepeatMode REPEAT_MODE_NONE")
+                mediaController.transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_NONE)
+            }
         }
         //mediaController.
 
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-
+        exo_progress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
-                // Display the current progress of SeekBar
-                //text_view.text = "Progress : $i"
-                //mediaController.transportControls.seekTo(i.toLong())
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {
-                // Do something
                 updSeek = false
-                //Toast.makeText(applicationContext, "start tracking", Toast.LENGTH_SHORT).show()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                // Do something
-                //Toast.makeText(applicationContext, "stop tracking", Toast.LENGTH_SHORT).show()
                 mediaController.transportControls.seekTo(seekBar.progress.toLong())
                 updSeek = true
             }
         })
-//        seekBar.upda
-
-        //MediaControllerCompat.getMediaController(this)
-
-
-        // mediaController = MediaControllerCompat
-//        val listView = findViewById(R.id.list_view)
-//        listView.setAdapter(
-//            ArrayAdapter(this, android.R.layout.simple_list_item_1, SAMPLES)
-//        )
-//        listView.setOnItemClickListener(AdapterView.OnItemClickListener { parent, view, position, id ->
-//            val action = ProgressiveDownloadAction(
-//                SAMPLES[position].uri, false, null, null
-//            )
-//            AudioDownloadService.startWithAction(
-//                this@MainActivity,
-//                AudioDownloadService::class.java,
-//                action,
-//                false
-//            )
-//        })
-
-
-//        serviceConnection = object : ServiceConnection {
-//            override fun onServiceConnected(name: ComponentName, service: IBinder) {
-//                playerServiceBinder = service as AudioPlayerService.AudioPlayerServiceBinder
-//                try {
-//                    mediaController =
-//                        MediaControllerCompat(this@MainActivity, playerServiceBinder.mediaSessionToken)
-//                    mediaController.registerCallback(callback)
-//                    callback.onPlaybackStateChanged(mediaController.playbackState)
-//                } catch (e: RemoteException) {
-//                    //mediaController = null
-//                }
-//
-//            }
-//
-//            override fun onServiceDisconnected(name: ComponentName) {
-//                //playerServiceBinder = null
-//                mediaController.unregisterCallback(callback)
-////                if (mediaController != null) {
-////                    mediaController.unregisterCallback(callback)
-////                    mediaController = null
-////                }
-//            }
-//        }
-
 
     }
 
@@ -257,9 +223,19 @@ class MainActivity : AppCompatActivity() {
         override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
             Log.w("TST", "onPlaybackStateChanged " + state.state.toString() + " - " + state.position)
 
+            if (state.state == PlaybackStateCompat.STATE_NONE) {
+                sel_lay.visibility = View.VISIBLE
+                play_lay.visibility = View.GONE
+                //Log.w("DDD", "ALL HIDDEN")
+            } else {
+                //Log.w("DDD", "ALL NOT HIDDEN")
+                sel_lay.visibility = View.GONE
+                play_lay.visibility = View.VISIBLE
+            }
             val playing = state.state == PlaybackStateCompat.STATE_PLAYING
-            textView6.text = state.position.toString()
-            seekBar.progress = state.position.toInt()
+            exo_position.text = state.position.toString()
+            exo_progress.progress = state.position.toInt()
+            //textView7.text = state.state.toString()
 
 
             //val playing = state.state == PlaybackStateCompat.STATE_PLAYING
@@ -274,10 +250,10 @@ class MainActivity : AppCompatActivity() {
 //                )
 //                hidePlaybackControls()
 //            }
-            textView5.text = playing.toString()
+            //textView5.text = playing.toString()
             changeSeekBar()
 
-            super.onPlaybackStateChanged(state)
+            //super.onPlaybackStateChanged(state)
         }
 
 
@@ -286,57 +262,59 @@ class MainActivity : AppCompatActivity() {
 
             fillMetadata(metadata)
 
-            super.onMetadataChanged(metadata)
+            //super.onMetadataChanged(metadata)
         }
 
         override fun onSessionReady() {
             Log.w("TST", "onSessionReady")
-            super.onSessionReady()
+            //super.onSessionReady()
         }
 
         override fun onSessionEvent(event: String?, extras: Bundle?) {
             Log.w("TST", "onSessionEvent")
-            super.onSessionEvent(event, extras)
+            //super.onSessionEvent(event, extras)
         }
 
         override fun onAudioInfoChanged(info: MediaControllerCompat.PlaybackInfo?) {
             Log.w("TST", "onAudioInfoChanged")
-            super.onAudioInfoChanged(info)
+            //super.onAudioInfoChanged(info)
         }
 
         override fun onExtrasChanged(extras: Bundle?) {
             Log.w("TST", "onExtrasChanged")
-            super.onExtrasChanged(extras)
+            //super.onExtrasChanged(extras)
         }
 
         override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
+            //mediaController.queueTitle
+            //queue.
             Log.w("TST", "onQueueChanged")
-            super.onQueueChanged(queue)
+            //super.onQueueChanged(queue)
         }
 
         override fun onQueueTitleChanged(title: CharSequence?) {
             Log.w("TST", "onQueueTitleChanged")
-            super.onQueueTitleChanged(title)
+            //super.onQueueTitleChanged(title)
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
             Log.w("TST", "onRepeatModeChanged")
-            super.onRepeatModeChanged(repeatMode)
+            //super.onRepeatModeChanged(repeatMode)
         }
 
         override fun onShuffleModeChanged(shuffleMode: Int) {
             Log.w("TST", "onShuffleModeChanged")
-            super.onShuffleModeChanged(shuffleMode)
+            //super.onShuffleModeChanged(shuffleMode)
         }
     }
 
     fun fillMetadata(metadata: MediaMetadataCompat?) {
 
-        Log.i("MTD", "METADATA_KEY_ART")
+        Log.i("MTD", "fillMetadata")
 
         if (metadata!!.getBitmap(MediaMetadataCompat.METADATA_KEY_ART) != null) {
             Log.i("MTD", "METADATA_KEY_ART")
-            image.setImageDrawable(
+            exo_artwork.setImageDrawable(
                 BitmapDrawable(resources, metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
                 )
             )
@@ -344,23 +322,31 @@ class MainActivity : AppCompatActivity() {
 
         if (metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE) != null) {
             Log.i("MTD", "METADATA_KEY_TITLE - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE))
-            textView2.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+            Title.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
         }
 
 
         if (metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST) != null) {
             Log.i("MTD", "METADATA_KEY_ARTIST - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST))
-            textView3.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
+            Artist.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
         }
 
         if (metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) != null) {
             Log.i("MTD", "METADATA_KEY_DURATION - " + metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString())
-            textView4.text = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString()
-            seekBar.max = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toInt()
+            exo_duration.text = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString()
+            exo_progress.max = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toInt()
         }
 
         if (metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE) != null) {
             Log.i("MTD", "METADATA_KEY_TRACK_NUMBER - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE))
+            val str = metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE).split(",")
+
+
+            hasNext = str[1] == "true"
+            hasPrev = str[2] == "true"
+            exo_next.isEnabled = hasNext
+            exo_prev.isEnabled = hasPrev
+
         }
 
     }
@@ -390,10 +376,10 @@ class MainActivity : AppCompatActivity() {
 
         if (updSeek) {
             if (cur == null) {
-                seekBar.progress = mediaController.playbackState.position.toInt()
-                textView6.text = mediaController.playbackState.position.toString()
+                exo_progress.progress = mediaController.playbackState.position.toInt()
+                exo_position.text = mediaController.playbackState.position.toString()
             } else {
-                seekBar.progress = cur.toInt()
+                exo_progress.progress = cur.toInt()
             }
         }
 

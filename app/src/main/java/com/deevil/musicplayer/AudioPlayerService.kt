@@ -37,20 +37,9 @@ class AudioPlayerService : Service() {
     private lateinit var mediaSessionConnector: MediaSessionConnector
     private val mServiceHandler = ServiceHandler(this)
     //private val mediaSessionCallback = MediaSessionCallback()
-    private val metadataBuilder = MediaMetadataCompat.Builder()
+    //private val metadataBuilder = MediaMetadataCompat.Builder()
     private lateinit var mediaController: MediaControllerCompat
-//
-//    private val uAmpAudioAttributes = AudioAttributes.Builder()
-//        .setContentType(com.google.android.exoplayer2.C.CONTENT_TYPE_MUSIC)
-//        .setUsage(com.google.android.exoplayer2.C.USAGE_MEDIA)
-//        .build()
 
-//    private val player: ExoPlayer by lazy {
-//        ExoPlayerFactory.newSimpleInstance(this).apply {
-//            setAudioAttributes(uAmpAudioAttributes, true)
-//        }
-//    }
-//
 
     override fun onCreate() {
         super.onCreate()
@@ -97,7 +86,8 @@ class AudioPlayerService : Service() {
 
         mediaSessionConnector.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
             override fun getMediaDescription(player: Player, windowIndex: Int): MediaDescriptionCompat {
-                return MediaDescriptionCompat.Builder().setMediaId(windowIndex.toString()).build()
+                return MediaDescriptionCompat.Builder().setTitle(windowIndex.toString())
+                    .setMediaId(windowIndex.toString()).build()
             }
         })
 
@@ -148,7 +138,8 @@ class AudioPlayerService : Service() {
     }
 
 
-    class MyPlayerEventListener(private val player: ExoPlayer, private val mediaSession: MediaSessionCompat) : Player.EventListener {
+    class MyPlayerEventListener(private val player: ExoPlayer, private val mediaSession: MediaSessionCompat) :
+        Player.EventListener {
 
         private val window: Timeline.Window? = null
 
@@ -226,10 +217,11 @@ class AudioPlayerService : Service() {
                 )
             }
 
-            var str = "true,"
-            str += if (player.hasNext()) "true" else "false"
-            str += ","
-            str += if (player.hasPrevious()) "true" else "false"
+            var str = "true"
+            str += "," + if (player.hasNext()) "true" else "false"
+            str += "," + if (player.hasPrevious()) "true" else "false"
+            str += "," + if (player.shuffleModeEnabled) "true" else "false"
+            str += "," + if (player.repeatMode == Player.REPEAT_MODE_ALL) "true" else "false"
 
             metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, str)
 
@@ -240,6 +232,79 @@ class AudioPlayerService : Service() {
             mediaSession.setMetadata(metadataBuilder.build())
         }
 
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            Log.i("TTT", "onRepeatModeChanged")
+            val metadataBuilder = MediaMetadataCompat.Builder()
+            val mediaController = mediaSession.controller
+            //if (Art != null && Tit != null) {
+
+            metadataBuilder.putBitmap(
+                MediaMetadataCompat.METADATA_KEY_ART,
+                mediaController.metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
+            )
+
+            metadataBuilder.putString(
+                MediaMetadataCompat.METADATA_KEY_TITLE,
+                mediaController.metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+            )
+
+            metadataBuilder.putString(
+                MediaMetadataCompat.METADATA_KEY_ARTIST,
+                mediaController.metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
+            )
+
+            metadataBuilder.putLong(
+                MediaMetadataCompat.METADATA_KEY_DURATION,
+                mediaController.metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+            )
+
+            var str = "true"
+            str += "," + if (player.hasNext()) "true" else "false"
+            str += "," + if (player.hasPrevious()) "true" else "false"
+            str += "," + if (player.shuffleModeEnabled) "true" else "false"
+            str += "," + if (player.repeatMode == Player.REPEAT_MODE_ALL) "true" else "false"
+
+            metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, str)
+
+            mediaSession.setMetadata(metadataBuilder.build())
+        }
+
+        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+            Log.i("TTT", "onShuffleModeEnabledChanged")
+            val metadataBuilder = MediaMetadataCompat.Builder()
+            val mediaController = mediaSession.controller
+            //if (Art != null && Tit != null) {
+
+            metadataBuilder.putBitmap(
+                MediaMetadataCompat.METADATA_KEY_ART,
+                mediaController.metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
+            )
+
+            metadataBuilder.putString(
+                MediaMetadataCompat.METADATA_KEY_TITLE,
+                mediaController.metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+            )
+
+            metadataBuilder.putString(
+                MediaMetadataCompat.METADATA_KEY_ARTIST,
+                mediaController.metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
+            )
+
+            metadataBuilder.putLong(
+                MediaMetadataCompat.METADATA_KEY_DURATION,
+                mediaController.metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+            )
+
+            var str = "true"
+            str += "," + if (player.hasNext()) "true" else "false"
+            str += "," + if (player.hasPrevious()) "true" else "false"
+            str += "," + if (player.shuffleModeEnabled) "true" else "false"
+            str += "," + if (player.repeatMode == Player.REPEAT_MODE_ALL) "true" else "false"
+
+            metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, str)
+
+            mediaSession.setMetadata(metadataBuilder.build())
+        }
 
     }
 
@@ -373,10 +438,11 @@ class AudioPlayerService : Service() {
             }
 
             //player.next()
-            var str = "true,"
-            str += if (player.hasNext()) "true" else "false"
-            str += ","
-            str += if (player.hasPrevious()) "true" else "false"
+            var str = "true"
+            str += "," + if (player.hasNext()) "true" else "false"
+            str += "," + if (player.hasPrevious()) "true" else "false"
+            str += "," + if (player.shuffleModeEnabled) "true" else "false"
+            str += "," + if (player.repeatMode == Player.REPEAT_MODE_ALL) "true" else "false"
 
             metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, str)
 

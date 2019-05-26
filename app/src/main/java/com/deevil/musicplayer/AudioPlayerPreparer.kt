@@ -45,7 +45,7 @@ class AudioPlayerPreparer(private val exoPlayer: ExoPlayer, private val context:
                     concatenatedSource.addMediaSource(ExtractorMediaSource.Factory(dataSourceFactory).setTag(i).createMediaSource(i))
                 }
                 exoPlayer.prepare(concatenatedSource)
-                exoPlayer.playWhenReady = true
+                //exoPlayer.playWhenReady = true
             } else {
                 //Toast.makeText(this, "В выбранной директории нет аудио файлов", Toast.LENGTH_LONG).show()
             }
