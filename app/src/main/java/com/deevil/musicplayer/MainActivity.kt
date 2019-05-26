@@ -50,12 +50,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         button2.setOnClickListener {
+            Log.i("TST", "play")
             mediaController.transportControls.play()
         }
 
         button3.setOnClickListener {
+            Log.i("TST", "pause")
             mediaController.transportControls.pause()
         }
+
+        button4.setOnClickListener {
+            Log.i("TST", "skipToPrevious")
+            mediaController.transportControls.skipToPrevious()
+        }
+
+
+        button5.setOnClickListener {
+            Log.i("TST", "skipToNext")
+            mediaController.transportControls.skipToNext()
+        }
+        //mediaController.
 
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -69,12 +83,12 @@ class MainActivity : AppCompatActivity() {
             override fun onStartTrackingTouch(seekBar: SeekBar) {
                 // Do something
                 updSeek = false
-                Toast.makeText(applicationContext, "start tracking", Toast.LENGTH_SHORT).show()
+                //Toast.makeText(applicationContext, "start tracking", Toast.LENGTH_SHORT).show()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 // Do something
-                Toast.makeText(applicationContext, "stop tracking", Toast.LENGTH_SHORT).show()
+                //Toast.makeText(applicationContext, "stop tracking", Toast.LENGTH_SHORT).show()
                 mediaController.transportControls.seekTo(seekBar.progress.toLong())
                 updSeek = true
             }
@@ -216,6 +230,7 @@ class MainActivity : AppCompatActivity() {
         MediaControllerCompat.setMediaController(this, mediaController)
 
         mediaController.registerCallback(mMediaControllerCallback)
+
         mMediaControllerCallback.onPlaybackStateChanged(mediaController.playbackState)
         //mMediaControllerCallback.onMetadataChanged(mediaController.metadata)
         fillMetadata(mediaController.metadata)
@@ -316,6 +331,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun fillMetadata(metadata: MediaMetadataCompat?) {
+
+        Log.i("MTD", "METADATA_KEY_ART")
+
         if (metadata!!.getBitmap(MediaMetadataCompat.METADATA_KEY_ART) != null) {
             Log.i("MTD", "METADATA_KEY_ART")
             image.setImageDrawable(
@@ -325,20 +343,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE) != null) {
-            Log.i("MTD", "METADATA_KEY_TITLE")
+            Log.i("MTD", "METADATA_KEY_TITLE - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE))
             textView2.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
         }
 
 
         if (metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST) != null) {
-            Log.i("MTD", "METADATA_KEY_ARTIST")
+            Log.i("MTD", "METADATA_KEY_ARTIST - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST))
             textView3.text = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
         }
 
         if (metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) != null) {
-            Log.i("MTD", "METADATA_KEY_DURATION")
+            Log.i("MTD", "METADATA_KEY_DURATION - " + metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString())
             textView4.text = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString()
             seekBar.max = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toInt()
+        }
+
+        if (metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE) != null) {
+            Log.i("MTD", "METADATA_KEY_TRACK_NUMBER - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE))
         }
 
     }
@@ -369,6 +391,7 @@ class MainActivity : AppCompatActivity() {
         if (updSeek) {
             if (cur == null) {
                 seekBar.progress = mediaController.playbackState.position.toInt()
+                textView6.text = mediaController.playbackState.position.toString()
             } else {
                 seekBar.progress = cur.toInt()
             }
