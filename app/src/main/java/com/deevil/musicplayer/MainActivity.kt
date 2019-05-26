@@ -12,29 +12,34 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.exoplayer2.util.Util
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
 import android.os.Handler
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.view.Gravity
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.SeekBar
+import com.deevil.mymusicplayer.SwipeListener
 import kotlinx.android.synthetic.main.player_layout.*
 import kotlinx.android.synthetic.main.select_layout.*
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
 
-    private val PERMISSION_REQUEST_CODE = 9998
-    private val DIRECTORY_REQUEST_CODE = 9999
+
     private val TAG = "DBG-ACT"
 
     private lateinit var mediaController: MediaControllerCompat
     private lateinit var sessionToken: MediaSessionCompat.Token
 
     private var updSeek: Boolean = true
-    private var hasNext: Boolean = false
-    private var hasPrev: Boolean = false
+
+    private val formatBuilder = StringBuilder()
+    private val formatter = Formatter(formatBuilder, Locale.getDefault())
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,47 +55,51 @@ class MainActivity : AppCompatActivity() {
         }
 
         exo_play.setOnClickListener {
-            Log.i("TST", "play")
+            Log.i(TAG, "play")
             mediaController.transportControls.play()
         }
 
         exo_pause.setOnClickListener {
-            Log.i("TST", "pause")
+            Log.i(TAG, "pause")
             mediaController.transportControls.pause()
         }
 
         exo_prev.setOnClickListener {
-            Log.i("TST", "skipToPrevious")
+            Log.i(TAG, "skipToPrevious")
             mediaController.transportControls.skipToPrevious()
         }
 
 
         exo_next.setOnClickListener {
-            Log.i("TST", "skipToNext")
+            Log.i(TAG, "skipToNext")
             mediaController.transportControls.skipToNext()
         }
 
         btn_shuffle.setOnClickListener {
             if (mediaController.shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_NONE) {
-                Log.i("TST", "setShuffleMode SHUFFLE_MODE_ALL")
+                Log.i(TAG, "setShuffleMode SHUFFLE_MODE_ALL")
                 mediaController.transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_ALL)
+                setButtonEnabled(btn_shuffle, true, changeAlpha = false, changeSelected = true)
             } else {
-                Log.i("TST", "setShuffleMode SHUFFLE_MODE_NONE")
+                Log.i(TAG, "setShuffleMode SHUFFLE_MODE_NONE")
                 mediaController.transportControls.setShuffleMode(PlaybackStateCompat.SHUFFLE_MODE_NONE)
+                setButtonEnabled(btn_shuffle, false, changeAlpha = false, changeSelected = true)
             }
         }
+
 
         btn_repeat.setOnClickListener {
 
             if (mediaController.repeatMode == PlaybackStateCompat.REPEAT_MODE_NONE) {
-                Log.i("TST", "setRepeatMode REPEAT_MODE_ALL")
+                Log.i(TAG, "setRepeatMode REPEAT_MODE_ALL")
                 mediaController.transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_ALL)
+                setButtonEnabled(btn_repeat, true, changeAlpha = false, changeSelected = true)
             } else {
-                Log.i("TST", "setRepeatMode REPEAT_MODE_NONE")
+                Log.i(TAG, "setRepeatMode REPEAT_MODE_NONE")
                 mediaController.transportControls.setRepeatMode(PlaybackStateCompat.REPEAT_MODE_NONE)
+                setButtonEnabled(btn_repeat, false, changeAlpha = false, changeSelected = true)
             }
         }
-        //mediaController.
 
 
         exo_progress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -107,6 +116,57 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+
+        play_lay.setOnTouchListener(object : SwipeListener(this) {
+
+            override fun onSwipeTop() {
+                Log.i(TAG, "onSwipeTop")
+            }
+
+            override fun onSwipeRight() {
+                Log.i(TAG, "onSwipeRight")
+                mediaController.transportControls.skipToPrevious()
+            }
+
+            override fun onSwipeLeft() {
+                Log.i(TAG, "onSwipeLeft")
+                mediaController.transportControls.skipToNext()
+            }
+
+            override fun onSwipeBottom() {
+                Log.i(TAG, "onSwipeBottom")
+                // Hide app
+                val startMain = Intent(Intent.ACTION_MAIN)
+                startMain.addCategory(Intent.CATEGORY_HOME)
+                startMain.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(startMain)
+            }
+
+        })
+
+    }
+
+    /**
+     * Change orientation
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        setImageByOrientation()
+    }
+
+    private fun setImageByOrientation() {
+        when (this.resources.configuration.orientation) {
+
+            Configuration.ORIENTATION_PORTRAIT -> {
+                play_lay_main.orientation = LinearLayout.VERTICAL
+                controls_lay.gravity = Gravity.BOTTOM
+            }
+            Configuration.ORIENTATION_LANDSCAPE -> {
+                play_lay_main.orientation = LinearLayout.HORIZONTAL
+                controls_lay.gravity = Gravity.CENTER
+            }
+
+        }
     }
 
 
@@ -121,7 +181,7 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                PERMISSION_REQUEST_CODE
+                C.PERMISSION_REQUEST_CODE
             )
         } else {
             val i = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
@@ -129,8 +189,7 @@ class MainActivity : AppCompatActivity() {
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             i.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
             i.addCategory(Intent.CATEGORY_DEFAULT)
-            //i.setType("audio/*");
-            startActivityForResult(Intent.createChooser(i, "Choose directory"), DIRECTORY_REQUEST_CODE)
+            startActivityForResult(Intent.createChooser(i, "Choose directory"), C.DIRECTORY_REQUEST_CODE)
         }
 
     }
@@ -141,7 +200,7 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (requestCode == PERMISSION_REQUEST_CODE) {
+        if (requestCode == C.PERMISSION_REQUEST_CODE) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.i(TAG, "Permission granted!")
                 selectDir()
@@ -158,7 +217,7 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == DIRECTORY_REQUEST_CODE && resultCode == RESULT_OK && data != null && data.data != null) {
+        if (requestCode == C.DIRECTORY_REQUEST_CODE && resultCode == RESULT_OK && data != null && data.data != null) {
             Log.i(TAG, "Result URI " + data.data)
 
             val treeUri = data.data ?: return
@@ -172,152 +231,78 @@ class MainActivity : AppCompatActivity() {
     private val mMessageReceiver = object : BroadcastReceiver() {
 
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.w(C.TAG, "onReceive")
+            Log.i(C.TAG, "onReceive")
             val b = intent!!.getBundleExtra(C.KEY_SESSION_TOKEN)
             val tmp: MediaSessionCompat.Token? = b.getParcelable(C.KEY_SESSION_TOKEN)
             if (tmp != null) {
                 sessionToken = tmp
                 connectToSession(sessionToken)
-                //                LogHelper.e(FragmentActivity.TAG, "on sessionToken receive")
-//                try {
-//                    connectToSession(sessionToken)
-//                } catch (re: RemoteException) {
-//                    LogHelper.e(FragmentActivity.TAG, re, "could not connect media controller")
-//                    hidePlaybackControls()
-//                }
-
             }
         }
     }
 
     private fun connectToSession(token: MediaSessionCompat.Token) {
-        //LogHelper.e(FragmentActivity.TAG, "connectToSession")
         mediaController = MediaControllerCompat(this, token)
         MediaControllerCompat.setMediaController(this, mediaController)
 
         mediaController.registerCallback(mMediaControllerCallback)
 
         mMediaControllerCallback.onPlaybackStateChanged(mediaController.playbackState)
-        //mMediaControllerCallback.onMetadataChanged(mediaController.metadata)
         fillMetadata(mediaController.metadata)
 
-
-//        if (shouldShowControls()) {
-//            showPlaybackControls()
-//        } else {
-//            LogHelper.e(
-//                FragmentActivity.TAG,
-//                "connectionCallback.onConnected: hiding controls because metadata is null"
-//            )
-//            hidePlaybackControls()
-//        }
-//
-//        if (mControlsFragment != null) {
-//            mControlsFragment.onConnected()
-//        }
-
-        //onMediaControllerConnected()
     }
 
     private val mMediaControllerCallback = object : MediaControllerCompat.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
-            Log.w("TST", "onPlaybackStateChanged " + state.state.toString() + " - " + state.position)
+            Log.i(TAG, "onPlaybackStateChanged " + state.state.toString() + " - " + state.position)
 
             if (state.state == PlaybackStateCompat.STATE_NONE) {
                 sel_lay.visibility = View.VISIBLE
                 play_lay.visibility = View.GONE
-                //Log.w("DDD", "ALL HIDDEN")
+                setImageByOrientation()
             } else {
-                //Log.w("DDD", "ALL NOT HIDDEN")
                 sel_lay.visibility = View.GONE
                 play_lay.visibility = View.VISIBLE
+                setImageByOrientation()
             }
-            val playing = state.state == PlaybackStateCompat.STATE_PLAYING
-            exo_position.text = state.position.toString()
+
+            val playing = (state.state == PlaybackStateCompat.STATE_PLAYING)
+            if (state.state != PlaybackStateCompat.STATE_BUFFERING) {
+                if (playing) {
+                    exo_play.visibility = View.GONE
+                    exo_pause.visibility = View.VISIBLE
+                } else {
+                    exo_play.visibility = View.VISIBLE
+                    exo_pause.visibility = View.GONE
+                }
+            }
+            exo_position.text = getTimeString(state.position)
             exo_progress.progress = state.position.toInt()
-            //textView7.text = state.state.toString()
 
-
-            //val playing = state.state == PlaybackStateCompat.STATE_PLAYING
-//            LogHelper.e(FragmentActivity.TAG, "onPlaybackStateChanged")
-//            if (shouldShowControls()) {
-//                showPlaybackControls()
-//            } else {
-//                LogHelper.e(
-//                    FragmentActivity.TAG,
-//                    "mediaControllerCallback.onPlaybackStateChanged: hiding controls because " + "state is ",
-//                    state.state
-//                )
-//                hidePlaybackControls()
-//            }
-            //textView5.text = playing.toString()
             changeSeekBar()
-
-            //super.onPlaybackStateChanged(state)
         }
 
 
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            Log.w("TST", "onMetadataChanged")
+            Log.i(TAG, "onMetadataChanged")
 
             fillMetadata(metadata)
-
-            //super.onMetadataChanged(metadata)
-        }
-
-        override fun onSessionReady() {
-            Log.w("TST", "onSessionReady")
-            //super.onSessionReady()
-        }
-
-        override fun onSessionEvent(event: String?, extras: Bundle?) {
-            Log.w("TST", "onSessionEvent")
-            //super.onSessionEvent(event, extras)
-        }
-
-        override fun onAudioInfoChanged(info: MediaControllerCompat.PlaybackInfo?) {
-            Log.w("TST", "onAudioInfoChanged")
-            //super.onAudioInfoChanged(info)
-        }
-
-        override fun onExtrasChanged(extras: Bundle?) {
-            Log.w("TST", "onExtrasChanged")
-            //super.onExtrasChanged(extras)
-        }
-
-        override fun onQueueChanged(queue: MutableList<MediaSessionCompat.QueueItem>?) {
-            //mediaController.queueTitle
-            //queue.
-            Log.w("TST", "onQueueChanged")
-            //super.onQueueChanged(queue)
-        }
-
-        override fun onQueueTitleChanged(title: CharSequence?) {
-            Log.w("TST", "onQueueTitleChanged")
-            //super.onQueueTitleChanged(title)
-        }
-
-        override fun onRepeatModeChanged(repeatMode: Int) {
-            Log.w("TST", "onRepeatModeChanged")
-            //super.onRepeatModeChanged(repeatMode)
-        }
-
-        override fun onShuffleModeChanged(shuffleMode: Int) {
-            Log.w("TST", "onShuffleModeChanged")
-            //super.onShuffleModeChanged(shuffleMode)
         }
     }
 
     fun fillMetadata(metadata: MediaMetadataCompat?) {
 
-        Log.i("MTD", "fillMetadata")
+        Log.i(TAG, "fillMetadata")
 
         if (metadata!!.getBitmap(MediaMetadataCompat.METADATA_KEY_ART) != null) {
             Log.i("MTD", "METADATA_KEY_ART")
             exo_artwork.setImageDrawable(
-                BitmapDrawable(resources, metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
+                BitmapDrawable(
+                    resources, metadata.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
                 )
             )
+        } else {
+            exo_artwork.setImageDrawable(getDrawable(R.drawable.default_img))
         }
 
         if (metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE) != null) {
@@ -332,44 +317,51 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) != null) {
-            Log.i("MTD", "METADATA_KEY_DURATION - " + metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString())
-            exo_duration.text = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString()
+            Log.i(
+                "MTD",
+                "METADATA_KEY_DURATION - " + metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toString()
+            )
+            exo_duration.text = getTimeString(metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION))
             exo_progress.max = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).toInt()
         }
 
         if (metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE) != null) {
-            Log.i("MTD", "METADATA_KEY_TRACK_NUMBER - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE))
+            Log.i(
+                "MTD",
+                "METADATA_KEY_DISPLAY_SUBTITLE - " + metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE)
+            )
+
             val str = metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE).split(",")
-
-
-            hasNext = str[1] == "true"
-            hasPrev = str[2] == "true"
-            exo_next.isEnabled = hasNext
-            exo_prev.isEnabled = hasPrev
-
+            setButtonEnabled(exo_next, str[1] == "true")
+            setButtonEnabled(exo_prev, str[2] == "true")
+            setButtonEnabled(btn_shuffle, str[3] == "true", changeAlpha = false, changeSelected = true)
+            setButtonEnabled(btn_repeat, str[4] == "true", changeAlpha = false, changeSelected = true)
         }
 
     }
 
+    private fun setButtonEnabled(
+        view: View,
+        enabled: Boolean,
+        changeAlpha: Boolean = true,
+        changeSelected: Boolean = false
+    ) {
+
+        if (changeAlpha) {
+            view.alpha = if (enabled) 1f else 0.3f
+        }
+        if (changeSelected) {
+            view.isSelected = enabled
+        } else {
+            view.isEnabled = enabled
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        Log.w(C.TAG, "onResume")
+        Log.i(C.TAG, "onResume")
         val filter = IntentFilter(C.INTENT_SESSION_TOKEN)
         registerReceiver(mMessageReceiver, filter)
-
-//        if (sessionToken != null) {
-//            try {
-//                connectToSession(sessionToken)
-//                if (lastTransaction != null) {
-//                    lastTransaction.commit()
-//                    lastTransaction = null
-//                }
-//            } catch (re: RemoteException) {
-//                LogHelper.e(FragmentActivity.TAG, re, "could not connect media controller")
-//                hidePlaybackControls()
-//            }
-//
-//        }
     }
 
     private fun changeSeekBar(cur: Long? = null) {
@@ -377,18 +369,22 @@ class MainActivity : AppCompatActivity() {
         if (updSeek) {
             if (cur == null) {
                 exo_progress.progress = mediaController.playbackState.position.toInt()
-                exo_position.text = mediaController.playbackState.position.toString()
+                exo_position.text = getTimeString(mediaController.playbackState.position)
             } else {
                 exo_progress.progress = cur.toInt()
+                exo_position.text = getTimeString(cur)
             }
         }
 
         if (mediaController.playbackState.state == PlaybackStateCompat.STATE_PLAYING) {
-            mHandler.postDelayed(Runnable {
+            mHandler.postDelayed({
                 changeSeekBar()
-                //mHandler.postDelayed(this, 200)
             }, 200)
         }
+    }
+
+    fun getTimeString(time: Long): String {
+        return Util.getStringForTime(formatBuilder, formatter, time)
     }
 
     private val mHandler = Handler()
